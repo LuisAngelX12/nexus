@@ -9,8 +9,11 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     database_url: str
+    test_database_url: str
 
     jwt_secret: str
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
 
     redis_url: str = "redis://localhost:6379/0"
 

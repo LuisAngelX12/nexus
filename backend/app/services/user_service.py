@@ -5,6 +5,8 @@ from backend.app.core.security import hash_password
 from backend.app.models.user import User
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.schemas.user import UserCreate
+from backend.app.core.jwt import create_access_token
+from backend.app.core.security import verify_password
 
 
 class UserAlreadyExistsError(Exception):
@@ -14,6 +16,26 @@ class UserAlreadyExistsError(Exception):
 class UserService:
     def __init__(self, session: Session) -> None:
         self.repository = UserRepository(session)
+
+    def authenticate_user(
+            self,
+            email: str,
+            password: str,
+    ) -> str | None:
+        normalized_email = email.strip().lower()
+
+        user = self.repository.get_by_email(normalized_email)
+
+        if user is None:
+            return None
+
+        if not user.is_active:
+            return None
+
+        if not verify_password(password, user.password_hash):
+            return None
+
+        return create_access_token(user.id)
 
     def create_user(self, data: UserCreate) -> User:
         normalized_email = data.email.strip().lower()
