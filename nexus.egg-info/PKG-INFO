@@ -11,6 +11,7 @@ Requires-Dist: sqlalchemy>=2.0
 Requires-Dist: alembic>=1.14
 Requires-Dist: psycopg[binary]>=3.2
 Requires-Dist: pwdlib[argon2]>=0.2
+Requires-Dist: email-validator>=2.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8.3; extra == "dev"
 Requires-Dist: httpx>=0.28; extra == "dev"
