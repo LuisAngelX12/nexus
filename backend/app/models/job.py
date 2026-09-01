@@ -1,9 +1,8 @@
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
-from sqlalchemy import ForeignKey, DateTime
 
-from sqlalchemy import String, Uuid
+from sqlalchemy import DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.models.base import (
@@ -69,6 +68,16 @@ class Job(UUIDMixin, TimestampMixin, Base):
     )
 
     duplicates: Mapped[int] = mapped_column(
+        default=0,
+        nullable=False,
+    )
+
+    skipped_files: Mapped[int] = mapped_column(
+        default=0,
+        nullable=False,
+    )
+
+    permission_errors: Mapped[int] = mapped_column(
         default=0,
         nullable=False,
     )

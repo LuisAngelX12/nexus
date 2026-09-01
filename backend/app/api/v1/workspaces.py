@@ -21,9 +21,7 @@ from backend.app.services.path_security_service import (
     PathSecurityError,
     PathSecurityService,
 )
-from backend.app.services.workspace_service import (
-    WorkspaceService,
-)
+from backend.app.services.workspace_service import WorkspaceService
 
 router = APIRouter(
     prefix="/workspaces",
@@ -62,16 +60,16 @@ def create_workspace(
             user_id=current_user.id,
             data=data,
         )
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workspace directory does not exist.",
-        )
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
-        )
+        ) from exc
 
     return WorkspaceResponse.model_validate(workspace)
 
@@ -112,7 +110,6 @@ def scan_workspace(
     )
 
     job_repository = JobRepository(db)
-
     job = job_repository.create(job)
 
     scan_workspace_task.delay(

@@ -11,9 +11,7 @@ from backend.app.services.file_hash_service import calculate_sha256
 class DuplicateFileError(Exception):
     def __init__(self, existing_file: File) -> None:
         self.existing_file = existing_file
-        super().__init__(
-            f"Duplicate file detected: {existing_file.name}"
-        )
+        super().__init__(f"Duplicate file detected: {existing_file.name}")
 
 
 class FileService:
@@ -21,10 +19,10 @@ class FileService:
         self.repository = FileRepository(session)
 
     def index_file(
-            self,
-            workspace_id: UUID,
-            file_path: Path,
-            mime_type: str | None = None,
+        self,
+        workspace_id: UUID,
+        file_path: Path,
+        mime_type: str | None = None,
     ) -> File:
         if not file_path.exists():
             raise FileNotFoundError(file_path)

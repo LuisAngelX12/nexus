@@ -11,4 +11,6 @@ class ScanResult(BaseModel):
     modified_files: int
     duplicates: int
     missing_files: int
+    skipped_files: int
+    permission_errors: int
     errors: int

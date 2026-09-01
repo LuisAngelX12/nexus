@@ -1,12 +1,11 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app.core.security import hash_password
+from backend.app.core.jwt import create_access_token
+from backend.app.core.security import hash_password, verify_password
 from backend.app.models.user import User
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.schemas.user import UserCreate
-from backend.app.core.jwt import create_access_token
-from backend.app.core.security import verify_password
 
 
 class UserAlreadyExistsError(Exception):
@@ -18,9 +17,9 @@ class UserService:
         self.repository = UserRepository(session)
 
     def authenticate_user(
-            self,
-            email: str,
-            password: str,
+        self,
+        email: str,
+        password: str,
     ) -> str | None:
         normalized_email = email.strip().lower()
 
@@ -43,9 +42,7 @@ class UserService:
         existing_user = self.repository.get_by_email(normalized_email)
 
         if existing_user is not None:
-            raise UserAlreadyExistsError(
-                "A user with this email already exists."
-            )
+            raise UserAlreadyExistsError("A user with this email already exists.")
 
         user = User(
             email=normalized_email,
@@ -57,6 +54,4 @@ class UserService:
         try:
             return self.repository.create(user)
         except IntegrityError as exc:
-            raise UserAlreadyExistsError(
-                "A user with this email already exists."
-            ) from exc
+            raise UserAlreadyExistsError("A user with this email already exists.") from exc

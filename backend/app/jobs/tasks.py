@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import logging
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from backend.app.models.workspace import Workspace
 from backend.app.services.workspace_scan_service import (
     WorkspaceScanService,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def update_job_progress(
@@ -30,11 +33,7 @@ def update_job_progress(
     job.files_processed = processed
     job.total_files = total
 
-    job.progress = (
-        int(processed * 100 / total)
-        if total > 0
-        else 100
-    )
+    job.progress = int(processed * 100 / total) if total > 0 else 100
 
     session.commit()
 
@@ -72,6 +71,12 @@ def scan_workspace_task(
     job_uuid = UUID(job_id)
     workspace_uuid = UUID(workspace_id)
 
+    logger.info(
+        "scan_job_started job_id=%s workspace_id=%s",
+        job_id,
+        workspace_id,
+    )
+
     try:
         job = job_session.get(
             Job,
@@ -89,12 +94,12 @@ def scan_workspace_task(
         if workspace is None:
             job.status = JobStatus.FAILED
             job.error_message = "Workspace not found."
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(UTC)
             job_session.commit()
             return
 
         job.status = JobStatus.RUNNING
-        job.started_at = datetime.now(timezone.utc)
+        job.started_at = datetime.now(UTC)
         job_session.commit()
 
         def progress_callback(
@@ -133,17 +138,23 @@ def scan_workspace_task(
         if job is not None:
             job.status = JobStatus.COMPLETED
             job.progress = 100
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(UTC)
             job.files_found = result["files_found"]
             job.files_processed = (
-                result["new_files"]
-                + result["unchanged_files"]
-                + result["modified_files"]
+                result["new_files"] + result["unchanged_files"] + result["modified_files"]
             )
             job.total_files = result["files_found"]
             job.duplicates = result["duplicates"]
 
             job_session.commit()
+
+            logger.info(
+                "scan_job_completed job_id=%s workspace_id=%s files_processed=%s duplicates=%s",
+                job_id,
+                workspace_id,
+                result["new_files"] + result["unchanged_files"] + result["modified_files"],
+                result["duplicates"],
+            )
 
     except JobCancelled:
         scanner_session.rollback()
@@ -156,12 +167,18 @@ def scan_workspace_task(
 
         if job is not None:
             job.status = JobStatus.CANCELLED
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(UTC)
             job_session.commit()
 
         return
 
     except Exception as exc:
+        logger.exception(
+            "scan_job_failed job_id=%s workspace_id=%s",
+            job_id,
+            workspace_id,
+        )
+
         scanner_session.rollback()
         job_session.rollback()
 
@@ -173,7 +190,7 @@ def scan_workspace_task(
         if job is not None:
             job.status = JobStatus.FAILED
             job.error_message = str(exc)
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(UTC)
             job_session.commit()
 
         raise

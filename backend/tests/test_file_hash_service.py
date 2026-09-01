@@ -13,6 +13,4 @@ def test_calculate_sha256(tmp_path: Path) -> None:
 
     result = calculate_sha256(file)
 
-    assert result == (
-        "52b797a276d825aaa28f449f1d35682bd4d271f6455be84e3869cdd7aed2ca03"
-    )
+    assert result == ("52b797a276d825aaa28f449f1d35682bd4d271f6455be84e3869cdd7aed2ca03")

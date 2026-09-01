@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 
 class PathSecurityError(Exception):
@@ -34,11 +34,7 @@ def get_protected_paths() -> tuple[Path, ...]:
         ),
     ]
 
-    return tuple(
-        path.resolve()
-        for path in paths
-        if path.exists()
-    )
+    return tuple(path.resolve() for path in paths if path.exists())
 
 
 class PathSecurityService:
@@ -49,16 +45,12 @@ class PathSecurityService:
         path = Path(raw_path).expanduser()
 
         if not path.is_absolute():
-            raise PathSecurityError(
-                "The path must be absolute."
-            )
+            raise PathSecurityError("The path must be absolute.")
 
         try:
             return path.resolve(strict=True)
         except FileNotFoundError as exc:
-            raise PathSecurityError(
-                "The specified path does not exist."
-            ) from exc
+            raise PathSecurityError("The specified path does not exist.") from exc
 
     @staticmethod
     def is_protected(
@@ -80,26 +72,18 @@ class PathSecurityService:
         path = Path(raw_path).expanduser()
 
         if not path.is_absolute():
-            raise PathSecurityError(
-                "The path must be absolute."
-            )
+            raise PathSecurityError("The path must be absolute.")
 
         try:
             path = path.resolve(strict=True)
         except FileNotFoundError as exc:
-            raise PathSecurityError(
-                "The specified path does not exist."
-            ) from exc
+            raise PathSecurityError("The specified path does not exist.") from exc
 
         if not path.is_dir():
-            raise PathSecurityError(
-                "The specified path is not a directory."
-            )
+            raise PathSecurityError("The specified path is not a directory.")
 
         if self.is_protected(path):
-            raise PathSecurityError(
-                "The specified directory is protected."
-            )
+            raise PathSecurityError("The specified directory is protected.")
 
         return path
 
@@ -127,13 +111,9 @@ class PathSecurityService:
             resolved_file,
             workspace_root,
         ):
-            raise PathSecurityError(
-                "File is outside the workspace."
-            )
+            raise PathSecurityError("File is outside the workspace.")
 
         if not resolved_file.is_file():
-            raise PathSecurityError(
-                "The path is not a file."
-            )
+            raise PathSecurityError("The path is not a file.")
 
         return resolved_file

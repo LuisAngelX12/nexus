@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from backend.app.core.config import get_settings
 from backend.app.models.base import Base
 
-
 settings = get_settings()
 
 test_engine = create_engine(
@@ -24,7 +23,7 @@ TestingSessionLocal = sessionmaker(
 
 
 @pytest.fixture
-def session() -> Generator[Session, None, None]:
+def session() -> Generator[Session]:
     Base.metadata.create_all(bind=test_engine)
 
     with TestingSessionLocal() as session:

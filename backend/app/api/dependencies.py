@@ -9,7 +9,6 @@ from backend.app.core.jwt import decode_access_token
 from backend.app.models.user import User
 from backend.app.repositories.user_repository import UserRepository
 
-
 security = HTTPBearer()
 
 
@@ -22,12 +21,12 @@ def get_current_user(
     try:
         payload = decode_access_token(token)
         user_id = UUID(payload["sub"])
-    except (ValueError, KeyError):
+    except (ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from exc
 
     repository = UserRepository(db)
 

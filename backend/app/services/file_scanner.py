@@ -11,9 +11,7 @@ def scan_directory(
         raise FileNotFoundError(root)
 
     if not root.is_dir():
-        raise ValueError(
-            "The workspace root is not a directory."
-        )
+        raise ValueError("The workspace root is not a directory.")
 
     for path in root.rglob("*"):
         if path.is_file():

@@ -65,9 +65,7 @@ def test_rejects_path_traversal(
     workspace.mkdir()
     secret.mkdir()
 
-    malicious = (
-        workspace / ".." / "secret"
-    )
+    malicious = workspace / ".." / "secret"
 
     service = PathSecurityService()
 

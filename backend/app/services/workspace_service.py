@@ -25,9 +25,7 @@ class WorkspaceService:
             raise FileNotFoundError(root)
 
         if not root.is_dir():
-            raise ValueError(
-                "Workspace path must be a directory."
-            )
+            raise ValueError("Workspace path must be a directory.")
 
         workspace = Workspace(
             user_id=user_id,

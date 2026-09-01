@@ -1,12 +1,11 @@
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import BigInteger, ForeignKey, String, Uuid
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
-from sqlalchemy import DateTime
-from backend.app.models.file_status import FileStatus
 
 from backend.app.models.base import Base, TimestampMixin, UUIDMixin
+from backend.app.models.file_status import FileStatus
 
 
 class File(UUIDMixin, TimestampMixin, Base):

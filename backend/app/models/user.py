@@ -1,8 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
-from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, String, Uuid
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.models.base import Base, TimestampMixin, UUIDMixin

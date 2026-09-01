@@ -5,12 +5,11 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
-from backend.app.models import Job, Workspace, JobStatus
+from backend.app.models import Job, JobStatus, Workspace
 from backend.app.models.user import User
 from backend.app.repositories.job_repository import JobRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.job import JobResponse
-
 
 router = APIRouter(
     prefix="/jobs",
@@ -43,10 +42,7 @@ def get_job(
         job.workspace_id,
     )
 
-    if (
-            workspace is None
-            or workspace.user_id != current_user.id
-    ):
+    if workspace is None or workspace.user_id != current_user.id:
         raise HTTPException(
             status_code=404,
             detail="Job not found.",

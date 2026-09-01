@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -7,5 +7,5 @@ def get_file_modified_at(path: Path) -> datetime:
 
     return datetime.fromtimestamp(
         timestamp,
-        tz=timezone.utc,
+        tz=UTC,
     )

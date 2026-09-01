@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.core.database import get_db
 from backend.app.api.dependencies import get_current_user
+from backend.app.core.database import get_db
 from backend.app.models.user import User
 from backend.app.schemas.user import (
     TokenResponse,
@@ -14,7 +14,6 @@ from backend.app.services.user_service import (
     UserAlreadyExistsError,
     UserService,
 )
-
 
 router = APIRouter(
     prefix="/auth",
@@ -43,6 +42,7 @@ def register(
 
     return UserResponse.model_validate(user)
 
+
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -68,6 +68,7 @@ def login(
     return TokenResponse(
         access_token=token,
     )
+
 
 @router.get(
     "/me",

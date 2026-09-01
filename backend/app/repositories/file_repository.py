@@ -1,8 +1,8 @@
+from collections import defaultdict
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from collections import defaultdict
 
 from backend.app.models.file import File
 
@@ -12,8 +12,8 @@ class FileRepository:
         self.session = session
 
     def get_fingerprints_by_size(
-            self,
-            workspace_id: UUID,
+        self,
+        workspace_id: UUID,
     ) -> dict[int, set[str]]:
         statement = select(
             File.size,
@@ -42,9 +42,9 @@ class FileRepository:
         return self.session.scalar(statement)
 
     def get_by_path(
-            self,
-            workspace_id: UUID,
-            path: str,
+        self,
+        workspace_id: UUID,
+        path: str,
     ) -> File | None:
         statement = select(File).where(
             File.workspace_id == workspace_id,
@@ -54,8 +54,8 @@ class FileRepository:
         return self.session.scalar(statement)
 
     def get_paths(
-            self,
-            workspace_id: UUID,
+        self,
+        workspace_id: UUID,
     ) -> set[str]:
         statement = select(File.path).where(
             File.workspace_id == workspace_id,
@@ -71,9 +71,9 @@ class FileRepository:
         return file
 
     def get_hashes_by_size(
-            self,
-            workspace_id: UUID,
-            size: int,
+        self,
+        workspace_id: UUID,
+        size: int,
     ) -> set[str]:
         statement = select(File.sha256).where(
             File.workspace_id == workspace_id,
@@ -87,9 +87,13 @@ class FileRepository:
         workspace_id: UUID,
         size: int,
     ) -> bool:
-        statement = select(File.id).where(
-            File.workspace_id == workspace_id,
-            File.size == size,
-        ).limit(1)
+        statement = (
+            select(File.id)
+            .where(
+                File.workspace_id == workspace_id,
+                File.size == size,
+            )
+            .limit(1)
+        )
 
         return self.session.scalar(statement) is not None

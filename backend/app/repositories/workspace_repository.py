@@ -14,9 +14,7 @@ class WorkspaceRepository:
         self,
         workspace_id: UUID,
     ) -> Workspace | None:
-        statement = select(Workspace).where(
-            Workspace.id == workspace_id
-        )
+        statement = select(Workspace).where(Workspace.id == workspace_id)
 
         return self.session.scalar(statement)
 
@@ -24,16 +22,14 @@ class WorkspaceRepository:
         self,
         user_id: UUID,
     ) -> list[Workspace]:
-        statement = select(Workspace).where(
-            Workspace.user_id == user_id
-        )
+        statement = select(Workspace).where(Workspace.user_id == user_id)
 
         return list(self.session.scalars(statement))
 
     def get_by_id_for_user(
-            self,
-            workspace_id: UUID,
-            user_id: UUID,
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
     ) -> Workspace | None:
         statement = select(Workspace).where(
             Workspace.id == workspace_id,

@@ -16,7 +16,6 @@ from backend.app.services.file_service import (
     FileService,
 )
 
-
 router = APIRouter(
     prefix="/files",
     tags=["Files"],
@@ -61,12 +60,12 @@ def index_file(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="File not found.",
-        )
+        ) from None
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
-        )
+        ) from exc
     except DuplicateFileError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -75,6 +74,6 @@ def index_file(
                 "existing_file_id": str(exc.existing_file.id),
                 "existing_file_name": exc.existing_file.name,
             },
-        )
+        ) from exc
 
     return FileResponse.model_validate(file)

@@ -1,5 +1,7 @@
+import logging
+import time
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -14,6 +16,7 @@ from backend.app.services.file_metadata_service import (
 )
 from backend.app.services.file_scanner import scan_directory
 
+logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[
     [int, int],
@@ -31,12 +34,16 @@ class WorkspaceScanService:
         workspace: Workspace,
         progress_callback: ProgressCallback | None = None,
     ) -> dict[str, int]:
+        start_time = time.perf_counter()
+
         files_found = 0
         files_indexed = 0
         new_files = 0
         unchanged_files = 0
         modified_files = 0
         duplicates = 0
+        skipped_files = 0
+        permission_errors = 0
         errors = 0
 
         existing_paths = self.file_repository.get_paths(
@@ -47,25 +54,32 @@ class WorkspaceScanService:
 
         root = Path(workspace.root_path)
 
-        fingerprints = (
-            self.file_repository.get_fingerprints_by_size(
-                workspace.id,
-            )
+        fingerprints = self.file_repository.get_fingerprints_by_size(
+            workspace.id,
         )
 
         paths = list(scan_directory(root))
 
         total_files = len(paths)
 
-        print(f">>> SCAN FOUND {total_files} FILES")
+        logger.info(
+            "scan_files_found total_files=%s workspace_id=%s",
+            total_files,
+            workspace.id,
+        )
 
         last_progress = -1
 
         for processed_count, path in enumerate(
-                paths,
-                start=1,
+            paths,
+            start=1,
         ):
-            print(f">>> PROCESSING {processed_count}/{total_files}: {path}")
+            logger.debug(
+                "scan_processing file=%s progress=%s/%s",
+                path,
+                processed_count,
+                total_files,
+            )
 
             files_found += 1
 
@@ -77,22 +91,14 @@ class WorkspaceScanService:
                 size = stat.st_size
                 modified_at = get_file_modified_at(path)
 
-                existing_file = (
-                    self.file_repository.get_by_path(
-                        workspace_id=workspace.id,
-                        path=str(path),
-                    )
+                existing_file = self.file_repository.get_by_path(
+                    workspace_id=workspace.id,
+                    path=str(path),
                 )
 
                 if existing_file is not None:
-                    if (
-                        existing_file.size == size
-                        and existing_file.modified_at
-                        == modified_at
-                    ):
-                        existing_file.last_scanned_at = (
-                            datetime.now(timezone.utc)
-                        )
+                    if existing_file.size == size and existing_file.modified_at == modified_at:
+                        existing_file.last_scanned_at = datetime.now(UTC)
 
                         existing_file.status = FileStatus.ACTIVE
 
@@ -107,9 +113,7 @@ class WorkspaceScanService:
                         existing_file.size = size
                         existing_file.sha256 = sha256
                         existing_file.modified_at = modified_at
-                        existing_file.last_scanned_at = (
-                            datetime.now(timezone.utc)
-                        )
+                        existing_file.last_scanned_at = datetime.now(UTC)
                         existing_file.status = FileStatus.ACTIVE
 
                         fingerprints.setdefault(
@@ -127,9 +131,7 @@ class WorkspaceScanService:
                         set(),
                     )
 
-                    is_duplicate = (
-                        sha256 in existing_hashes
-                    )
+                    is_duplicate = sha256 in existing_hashes
 
                     if is_duplicate:
                         duplicates += 1
@@ -142,15 +144,10 @@ class WorkspaceScanService:
                         path=str(path),
                         size=size,
                         mime_type=None,
-                        extension=(
-                            path.suffix.lower()
-                            or None
-                        ),
+                        extension=(path.suffix.lower() or None),
                         sha256=sha256,
                         modified_at=modified_at,
-                        last_scanned_at=(
-                            datetime.now(timezone.utc)
-                        ),
+                        last_scanned_at=(datetime.now(UTC)),
                         status=FileStatus.ACTIVE,
                     )
 
@@ -161,27 +158,38 @@ class WorkspaceScanService:
                         set(),
                     ).add(sha256)
 
-            except OSError:
-                errors += 1
+            except PermissionError:
+                skipped_files += 1
+                permission_errors += 1
 
-            progress = (
-                int(
-                    processed_count * 100 / total_files
+                logger.warning(
+                    "file_skipped path=%s reason=permission_denied",
+                    path,
                 )
-                if total_files > 0
-                else 100
-            )
 
-            if (
-                    progress != last_progress
-                    and (
-                    progress % 5 == 0
-                    or progress == 100
-            )
-            ):
-                print(
-                    f">>> PROGRESS CALLBACK: "
-                    f"{processed_count}/{total_files} = {progress}%"
+                continue
+
+            except OSError as exc:
+                errors += 1
+                skipped_files += 1
+
+                logger.warning(
+                    "file_skipped path=%s reason=%s",
+                    path,
+                    exc,
+                )
+
+                continue
+
+            progress = int(processed_count * 100 / total_files) if total_files > 0 else 100
+
+            if progress != last_progress and (progress % 5 == 0 or progress == 100):
+                logger.info(
+                    "scan_progress workspace_id=%s progress=%s%% processed=%s total=%s",
+                    workspace.id,
+                    progress,
+                    processed_count,
+                    total_files,
                 )
 
                 if progress_callback is not None:
@@ -195,17 +203,29 @@ class WorkspaceScanService:
         missing_paths = existing_paths - scanned_paths
 
         for missing_path in missing_paths:
-            missing_file = (
-                self.file_repository.get_by_path(
-                    workspace_id=workspace.id,
-                    path=missing_path,
-                )
+            missing_file = self.file_repository.get_by_path(
+                workspace_id=workspace.id,
+                path=missing_path,
             )
 
             if missing_file is not None:
                 missing_file.status = FileStatus.MISSING
 
         missing_files = len(missing_paths)
+
+        duration = time.perf_counter() - start_time
+
+        processed = total_files
+
+        files_per_second = processed / duration if duration > 0 else 0
+
+        logger.info(
+            "scan_performance job_id=%s files=%s duration_seconds=%.2f files_per_second=%.2f",
+            workspace.id,
+            processed,
+            duration,
+            files_per_second,
+        )
 
         self.session.commit()
 
@@ -217,5 +237,7 @@ class WorkspaceScanService:
             "modified_files": modified_files,
             "duplicates": duplicates,
             "missing_files": missing_files,
+            "skipped_files": skipped_files,
+            "permission_errors": permission_errors,
             "errors": errors,
         }
