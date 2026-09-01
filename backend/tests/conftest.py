@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,7 +24,7 @@ TestingSessionLocal = sessionmaker(
 
 
 @pytest.fixture
-def session() -> Session:
+def session() -> Generator[Session, None, None]:
     Base.metadata.create_all(bind=test_engine)
 
     with TestingSessionLocal() as session:

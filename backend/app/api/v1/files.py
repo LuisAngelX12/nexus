@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -6,6 +7,9 @@ from sqlalchemy.orm import Session
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
 from backend.app.models.user import User
+from backend.app.repositories.workspace_repository import (
+    WorkspaceRepository,
+)
 from backend.app.schemas.file import FileResponse
 from backend.app.services.file_service import (
     DuplicateFileError,
@@ -26,14 +30,31 @@ router = APIRouter(
 )
 def index_file(
     path: str,
+    workspace_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FileResponse:
+    workspace_repository = WorkspaceRepository(db)
+
+    workspace = workspace_repository.get_by_id(workspace_id)
+
+    if workspace is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found.",
+        )
+
+    if workspace.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found.",
+        )
+
     service = FileService(db)
 
     try:
         file = service.index_file(
-            user_id=current_user.id,
+            workspace_id=workspace_id,
             file_path=Path(path),
         )
     except FileNotFoundError:

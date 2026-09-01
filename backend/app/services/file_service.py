@@ -21,10 +21,10 @@ class FileService:
         self.repository = FileRepository(session)
 
     def index_file(
-        self,
-        user_id: UUID,
-        file_path: Path,
-        mime_type: str | None = None,
+            self,
+            workspace_id: UUID,
+            file_path: Path,
+            mime_type: str | None = None,
     ) -> File:
         if not file_path.exists():
             raise FileNotFoundError(file_path)
@@ -35,7 +35,7 @@ class FileService:
         sha256 = calculate_sha256(file_path)
 
         existing_file = self.repository.get_by_hash(
-            user_id=user_id,
+            workspace_id=workspace_id,
             sha256=sha256,
         )
 
@@ -43,7 +43,7 @@ class FileService:
             raise DuplicateFileError(existing_file)
 
         file = File(
-            user_id=user_id,
+            workspace_id=workspace_id,
             name=file_path.name,
             path=str(file_path),
             size=file_path.stat().st_size,

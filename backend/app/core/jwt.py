@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import UUID
 
 import jwt
@@ -27,7 +28,7 @@ def create_access_token(user_id: UUID) -> str:
     )
 
 
-def decode_access_token(token: str) -> dict:
+def decode_access_token(token: str) -> dict[str, Any]:
     return jwt.decode(
         token,
         settings.jwt_secret,

@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.orm import Session
 
 from backend.app.core.security import verify_password
 from backend.app.models.user import UserRole
@@ -9,7 +10,7 @@ from backend.app.services.user_service import (
 )
 
 
-def test_create_user(session) -> None:
+def test_create_user(session: Session) -> None:
     service = UserService(session)
 
     data = UserCreate(
@@ -31,7 +32,7 @@ def test_create_user(session) -> None:
     )
 
 
-def test_cannot_create_duplicate_email(session) -> None:
+def test_cannot_create_duplicate_email(session: Session) -> None:
     service = UserService(session)
 
     data = UserCreate(

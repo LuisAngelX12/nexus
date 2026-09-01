@@ -2,6 +2,9 @@ from uuid import UUID
 
 from sqlalchemy import BigInteger, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
+from datetime import datetime
+from sqlalchemy import DateTime
+from backend.app.models.file_status import FileStatus
 
 from backend.app.models.base import Base, TimestampMixin, UUIDMixin
 
@@ -9,9 +12,9 @@ from backend.app.models.base import Base, TimestampMixin, UUIDMixin
 class File(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "files"
 
-    user_id: Mapped[UUID] = mapped_column(
+    workspace_id: Mapped[UUID] = mapped_column(
         Uuid,
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -45,4 +48,20 @@ class File(UUIDMixin, TimestampMixin, Base):
         String(64),
         nullable=False,
         index=True,
+    )
+
+    modified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    last_scanned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    status: Mapped[FileStatus] = mapped_column(
+        String(20),
+        nullable=False,
+        default=FileStatus.ACTIVE,
     )
