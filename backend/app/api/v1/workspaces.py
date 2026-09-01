@@ -17,6 +17,10 @@ from backend.app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
 )
+from backend.app.services.path_security_service import (
+    PathSecurityError,
+    PathSecurityService,
+)
 from backend.app.services.workspace_service import (
     WorkspaceService,
 )
@@ -25,6 +29,7 @@ router = APIRouter(
     prefix="/workspaces",
     tags=["Workspaces"],
 )
+
 
 @router.post(
     "",
@@ -36,6 +41,20 @@ def create_workspace(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> WorkspaceResponse:
+    security_service = PathSecurityService()
+
+    try:
+        normalized_path = security_service.validate(
+            data.root_path,
+        )
+    except PathSecurityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    data.root_path = str(normalized_path)
+
     service = WorkspaceService(db)
 
     try:
@@ -56,6 +75,7 @@ def create_workspace(
 
     return WorkspaceResponse.model_validate(workspace)
 
+
 @router.post(
     "/{workspace_id}/scan",
     response_model=JobResponse,
@@ -68,8 +88,9 @@ def scan_workspace(
 ) -> JobResponse:
     workspace_repository = WorkspaceRepository(db)
 
-    workspace = workspace_repository.get_by_id(
+    workspace = workspace_repository.get_by_id_for_user(
         workspace_id,
+        current_user.id,
     )
 
     if workspace is None:

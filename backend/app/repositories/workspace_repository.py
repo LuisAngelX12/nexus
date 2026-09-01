@@ -30,6 +30,18 @@ class WorkspaceRepository:
 
         return list(self.session.scalars(statement))
 
+    def get_by_id_for_user(
+            self,
+            workspace_id: UUID,
+            user_id: UUID,
+    ) -> Workspace | None:
+        statement = select(Workspace).where(
+            Workspace.id == workspace_id,
+            Workspace.user_id == user_id,
+        )
+
+        return self.session.scalar(statement)
+
     def create(
         self,
         workspace: Workspace,

@@ -57,12 +57,16 @@ class WorkspaceScanService:
 
         total_files = len(paths)
 
+        print(f">>> SCAN FOUND {total_files} FILES")
+
         last_progress = -1
 
         for processed_count, path in enumerate(
-            paths,
-            start=1,
+                paths,
+                start=1,
         ):
+            print(f">>> PROCESSING {processed_count}/{total_files}: {path}")
+
             files_found += 1
 
             scanned_paths.add(str(path))
@@ -169,12 +173,17 @@ class WorkspaceScanService:
             )
 
             if (
-                progress != last_progress
-                and (
+                    progress != last_progress
+                    and (
                     progress % 5 == 0
                     or progress == 100
-                )
+            )
             ):
+                print(
+                    f">>> PROGRESS CALLBACK: "
+                    f"{processed_count}/{total_files} = {progress}%"
+                )
+
                 if progress_callback is not None:
                     progress_callback(
                         processed_count,

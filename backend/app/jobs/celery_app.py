@@ -7,6 +7,9 @@ celery_app = Celery(
     "nexus",
     broker=settings.redis_url,
     backend=settings.redis_url,
+    include=[
+        "backend.app.jobs.tasks",
+    ],
 )
 
 celery_app.conf.update(
