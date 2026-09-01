@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,14 +15,21 @@ from backend.app.services.file_metadata_service import (
 from backend.app.services.file_scanner import scan_directory
 
 
+ProgressCallback = Callable[
+    [int, int],
+    None,
+]
+
+
 class WorkspaceScanService:
     def __init__(self, session: Session) -> None:
         self.session = session
         self.file_repository = FileRepository(session)
 
     def scan(
-            self,
-            workspace: Workspace,
+        self,
+        workspace: Workspace,
+        progress_callback: ProgressCallback | None = None,
     ) -> dict[str, int]:
         files_found = 0
         files_indexed = 0
@@ -45,7 +53,16 @@ class WorkspaceScanService:
             )
         )
 
-        for path in scan_directory(root):
+        paths = list(scan_directory(root))
+
+        total_files = len(paths)
+
+        last_progress = -1
+
+        for processed_count, path in enumerate(
+            paths,
+            start=1,
+        ):
             files_found += 1
 
             scanned_paths.add(str(path))
@@ -65,9 +82,9 @@ class WorkspaceScanService:
 
                 if existing_file is not None:
                     if (
-                            existing_file.size == size
-                            and existing_file.modified_at
-                            == modified_at
+                        existing_file.size == size
+                        and existing_file.modified_at
+                        == modified_at
                     ):
                         existing_file.last_scanned_at = (
                             datetime.now(timezone.utc)
@@ -76,31 +93,45 @@ class WorkspaceScanService:
                         existing_file.status = FileStatus.ACTIVE
 
                         unchanged_files += 1
-                        continue
 
-                    modified_files += 1
+                    else:
+                        modified_files += 1
+
+                        sha256 = calculate_sha256(path)
+
+                        existing_file.name = path.name
+                        existing_file.size = size
+                        existing_file.sha256 = sha256
+                        existing_file.modified_at = modified_at
+                        existing_file.last_scanned_at = (
+                            datetime.now(timezone.utc)
+                        )
+                        existing_file.status = FileStatus.ACTIVE
+
+                        fingerprints.setdefault(
+                            size,
+                            set(),
+                        ).add(sha256)
 
                 else:
                     new_files += 1
 
-                sha256 = calculate_sha256(path)
+                    sha256 = calculate_sha256(path)
 
-                existing_hashes = fingerprints.get(
-                    size,
-                    set(),
-                )
+                    existing_hashes = fingerprints.get(
+                        size,
+                        set(),
+                    )
 
-                is_duplicate = (
-                        existing_file is None
-                        and sha256 in existing_hashes
-                )
+                    is_duplicate = (
+                        sha256 in existing_hashes
+                    )
 
-                if is_duplicate:
-                    duplicates += 1
-                else:
-                    files_indexed += 1
+                    if is_duplicate:
+                        duplicates += 1
+                    else:
+                        files_indexed += 1
 
-                if existing_file is None:
                     file = File(
                         workspace_id=workspace.id,
                         name=path.name,
@@ -108,8 +139,8 @@ class WorkspaceScanService:
                         size=size,
                         mime_type=None,
                         extension=(
-                                path.suffix.lower()
-                                or None
+                            path.suffix.lower()
+                            or None
                         ),
                         sha256=sha256,
                         modified_at=modified_at,
@@ -121,23 +152,36 @@ class WorkspaceScanService:
 
                     self.session.add(file)
 
-                else:
-                    existing_file.name = path.name
-                    existing_file.size = size
-                    existing_file.sha256 = sha256
-                    existing_file.modified_at = modified_at
-                    existing_file.last_scanned_at = (
-                        datetime.now(timezone.utc)
-                    )
-                    existing_file.status = FileStatus.ACTIVE
-
-                fingerprints.setdefault(
-                    size,
-                    set(),
-                ).add(sha256)
+                    fingerprints.setdefault(
+                        size,
+                        set(),
+                    ).add(sha256)
 
             except OSError:
                 errors += 1
+
+            progress = (
+                int(
+                    processed_count * 100 / total_files
+                )
+                if total_files > 0
+                else 100
+            )
+
+            if (
+                progress != last_progress
+                and (
+                    progress % 5 == 0
+                    or progress == 100
+                )
+            ):
+                if progress_callback is not None:
+                    progress_callback(
+                        processed_count,
+                        total_files,
+                    )
+
+                last_progress = progress
 
         missing_paths = existing_paths - scanned_paths
 

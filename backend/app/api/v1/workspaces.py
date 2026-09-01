@@ -5,22 +5,21 @@ from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
+from backend.app.jobs.tasks import scan_workspace_task
+from backend.app.models.job import Job, JobStatus, JobType
 from backend.app.models.user import User
+from backend.app.repositories.job_repository import JobRepository
 from backend.app.repositories.workspace_repository import (
     WorkspaceRepository,
 )
-from backend.app.schemas.scan import ScanResult
+from backend.app.schemas.job import JobResponse
 from backend.app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
 )
-from backend.app.services.workspace_scan_service import (
-    WorkspaceScanService,
-)
 from backend.app.services.workspace_service import (
     WorkspaceService,
 )
-
 
 router = APIRouter(
     prefix="/workspaces",
@@ -59,16 +58,19 @@ def create_workspace(
 
 @router.post(
     "/{workspace_id}/scan",
-    response_model=ScanResult,
+    response_model=JobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 def scan_workspace(
     workspace_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ScanResult:
-    repository = WorkspaceRepository(db)
+) -> JobResponse:
+    workspace_repository = WorkspaceRepository(db)
 
-    workspace = repository.get_by_id(workspace_id)
+    workspace = workspace_repository.get_by_id(
+        workspace_id,
+    )
 
     if workspace is None:
         raise HTTPException(
@@ -82,11 +84,19 @@ def scan_workspace(
             detail="Workspace not found.",
         )
 
-    service = WorkspaceScanService(db)
-
-    result = service.scan(workspace)
-
-    return ScanResult(
+    job = Job(
         workspace_id=workspace.id,
-        **result,
+        type=JobType.WORKSPACE_SCAN,
+        status=JobStatus.QUEUED,
     )
+
+    job_repository = JobRepository(db)
+
+    job = job_repository.create(job)
+
+    scan_workspace_task.delay(
+        str(job.id),
+        str(workspace.id),
+    )
+
+    return JobResponse.model_validate(job)

@@ -5,6 +5,10 @@ from backend.app.api.v1.files import router as files_router
 from backend.app.api.v1.workspaces import (
     router as workspaces_router,
 )
+from backend.app.api.v1.jobs import (
+    router as jobs_router,
+)
+
 
 app = FastAPI(
     title="NEXUS API",
@@ -24,6 +28,11 @@ app.include_router(
 
 app.include_router(
     workspaces_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    jobs_router,
     prefix="/api/v1",
 )
 
