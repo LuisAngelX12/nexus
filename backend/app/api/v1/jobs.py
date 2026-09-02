@@ -9,6 +9,7 @@ from backend.app.models import Job, JobStatus, Workspace
 from backend.app.models.user import User
 from backend.app.repositories.job_repository import JobRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.schemas.error import ErrorResponse
 from backend.app.schemas.job import JobResponse
 
 router = APIRouter(
@@ -20,6 +21,19 @@ router = APIRouter(
 @router.get(
     "/{job_id}",
     response_model=JobResponse,
+    responses={
+            404: {
+                "model": ErrorResponse,
+                "description": "Job not found",
+            },
+        },
+    summary="Get job status",
+    description="""
+    Returns the current status and progress of an asynchronous NEXUS job.
+
+    The response can be used by clients to monitor a scan without
+    blocking the HTTP request.
+    """,
 )
 def get_job(
     job_id: UUID,
@@ -53,7 +67,23 @@ def get_job(
 
 @router.post(
     "/{job_id}/cancel",
-    response_model=JobResponse,
+    summary="Cancel job",
+    description="""
+    Requests cancellation of an asynchronous NEXUS job.
+
+    Cancellation is cooperative. A worker may need a short amount
+    of time to stop safely.
+    """,
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Job not found",
+        },
+        409: {
+            "model": ErrorResponse,
+            "description": "Job cannot be cancelled",
+        },
+    },
 )
 def cancel_job(
     job_id: UUID,

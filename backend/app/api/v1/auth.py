@@ -73,8 +73,9 @@ def login(
 @router.get(
     "/me",
     response_model=UserResponse,
+    summary="Get current user",
 )
-def get_me(
+def get_current_user_info(
     current_user: User = Depends(get_current_user),
 ) -> UserResponse:
     return UserResponse.model_validate(current_user)

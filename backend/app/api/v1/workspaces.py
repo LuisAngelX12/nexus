@@ -12,6 +12,7 @@ from backend.app.repositories.job_repository import JobRepository
 from backend.app.repositories.workspace_repository import (
     WorkspaceRepository,
 )
+from backend.app.schemas.error import ErrorResponse
 from backend.app.schemas.job import JobResponse
 from backend.app.schemas.workspace import (
     WorkspaceCreate,
@@ -32,7 +33,23 @@ router = APIRouter(
 @router.post(
     "",
     response_model=WorkspaceResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=201,
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid workspace data",
+        },
+        401: {
+            "model": ErrorResponse,
+            "description": "Authentication required",
+        },
+    },
+    summary="Create workspace",
+    description="""
+    Creates a new workspace for the authenticated user.
+
+    The workspace path is validated before it is persisted.
+    """,
 )
 def create_workspace(
     data: WorkspaceCreate,
@@ -76,8 +93,25 @@ def create_workspace(
 
 @router.post(
     "/{workspace_id}/scan",
-    response_model=JobResponse,
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=202,
+    summary="Start workspace scan",
+    description="""
+    Starts an asynchronous filesystem scan for the specified workspace.
+
+    The scan is processed by a Celery worker.
+
+    Returns a job identifier that can be used to monitor progress.
+    """,
+    responses={
+        404: {
+            "model": ErrorResponse,
+            "description": "Workspace not found",
+        },
+        409: {
+            "model": ErrorResponse,
+            "description": "A scan is already running",
+        },
+    },
 )
 def scan_workspace(
     workspace_id: UUID,

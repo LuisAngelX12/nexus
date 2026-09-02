@@ -1,21 +1,18 @@
+from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
-from backend.app.models.job import JobStatus, JobType
+from pydantic import BaseModel
 
 
 class JobResponse(BaseModel):
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
-
     id: UUID
-    workspace_id: UUID
-    type: JobType
-    status: JobStatus
+    status: str
     progress: int
-    files_found: int
-    files_processed: int
-    duplicates: int
-    error_message: str | None
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    error_message: str | None = None
+
+    model_config = {
+        "from_attributes": True,
+    }

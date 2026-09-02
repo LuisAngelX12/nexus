@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from backend.app.api.routes.health import router as health_router
+from backend.app.api.routes.ready import router as ready_router
 from backend.app.api.v1.auth import router as auth_router
 from backend.app.api.v1.files import router as files_router
 from backend.app.api.v1.jobs import (
@@ -17,7 +19,44 @@ configure_logging()
 
 app = FastAPI(
     title="NEXUS API",
-    version="0.1.0",
+    description="""
+    # NEXUS
+
+    NEXUS is a secure asynchronous system for filesystem
+    analysis and workspace management.
+
+    ## Main features
+
+    - User authentication
+    - Workspace management
+    - Secure filesystem scanning
+    - Asynchronous scan jobs
+    - Job progress tracking
+    - Job cancellation
+    - File discovery
+    - PostgreSQL persistence
+    - Redis + Celery workers
+
+    ## Architecture
+
+    NEXUS is designed as a modular backend using:
+
+    - FastAPI
+    - PostgreSQL
+    - Redis
+    - Celery
+    - SQLAlchemy
+    - Alembic
+    """,
+    version="1.0.0",
+    contact={
+        "name": "NEXUS Project",
+    },
+    license_info={
+        "name": "MIT",
+    },
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 app.add_middleware(
@@ -44,7 +83,6 @@ app.include_router(
     prefix="/api/v1",
 )
 
+app.include_router(health_router)
 
-@app.get("/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+app.include_router(ready_router)
