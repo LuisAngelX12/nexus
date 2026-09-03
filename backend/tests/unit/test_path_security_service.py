@@ -29,12 +29,16 @@ def test_rejects_relative_path() -> None:
         )
 
 
-def test_rejects_missing_path() -> None:
+def test_rejects_missing_path(
+    tmp_path: Path,
+) -> None:
     service = PathSecurityService()
+
+    missing = tmp_path / "does-not-exist"
 
     with pytest.raises(PathSecurityError):
         service.validate(
-            "C:/this/path/does/not/exist",
+            str(missing),
         )
 
 
@@ -54,26 +58,6 @@ def test_rejects_file(
         service.validate(
             str(file_path),
         )
-
-
-def test_rejects_path_traversal(
-    tmp_path: Path,
-) -> None:
-    workspace = tmp_path / "workspace"
-    secret = tmp_path / "secret"
-
-    workspace.mkdir()
-    secret.mkdir()
-
-    malicious = workspace / ".." / "secret"
-
-    service = PathSecurityService()
-
-    result = service.validate(
-        str(malicious),
-    )
-
-    assert result == secret.resolve()
 
 
 def test_is_within(
@@ -108,3 +92,27 @@ def test_is_not_within(
         outside,
         root,
     )
+
+
+def test_validate_file_rejects_path_traversal(
+    tmp_path: Path,
+) -> None:
+    service = PathSecurityService()
+
+    workspace = tmp_path / "workspace"
+    secret = tmp_path / "secret.txt"
+
+    workspace.mkdir()
+
+    secret.write_text(
+        "SECRET",
+        encoding="utf-8",
+    )
+
+    malicious = workspace / ".." / "secret.txt"
+
+    with pytest.raises(PathSecurityError):
+        service.validate_file(
+            malicious,
+            workspace,
+        )

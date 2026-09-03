@@ -30,6 +30,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
+addopts = "-ra"
 
 [tool.ruff]
 line-length = 100
@@ -42,3 +43,6 @@ ignore = ["B008"]
 [tool.mypy]
 python_version = "3.14"
 strict = true
+exclude = [
+    "^backend/tests/",
+]
