@@ -195,9 +195,7 @@ def test_register_duplicate_user(
         register(data, MagicMock())
 
     assert exc_info.value.status_code == 409
-    assert exc_info.value.detail == (
-        "A user with this email already exists."
-    )
+    assert exc_info.value.detail == ("A user with this email already exists.")
 
 
 def test_login_invalid_credentials(
@@ -605,6 +603,7 @@ def test_index_file_success(
         workspace_id=workspace_id,
         file_path=Path("C:/workspace/test.txt"),
     )
+
 
 def test_scan_workspace_belongs_to_other_user(
     monkeypatch: pytest.MonkeyPatch,

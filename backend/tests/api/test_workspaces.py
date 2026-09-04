@@ -45,9 +45,7 @@ def configure_service(
 ) -> None:
     repository = MagicMock()
 
-    repository.get_paths.return_value = (
-        existing_paths if existing_paths is not None else set()
-    )
+    repository.get_paths.return_value = existing_paths if existing_paths is not None else set()
 
     repository.get_fingerprints_by_size.return_value = (
         fingerprints if fingerprints is not None else {}
@@ -326,7 +324,6 @@ def test_scan_os_error(session, monkeypatch):
     repository.get_by_path.assert_not_called()
 
 
-
 def test_scan_marks_missing_files(session, monkeypatch):
     service = WorkspaceScanService(session)
     workspace = make_workspace()
@@ -370,7 +367,6 @@ def test_scan_missing_path_without_file(session, monkeypatch):
     }
     service.file_repository.get_fingerprints_by_size.return_value = {}
     service.file_repository.get_by_path.return_value = None
-
 
     monkeypatch.setattr(
         "backend.app.services.workspace_scan_service.scan_directory",

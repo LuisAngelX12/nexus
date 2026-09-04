@@ -9,9 +9,7 @@ router = APIRouter(
 @router.get(
     "/ready",
     summary="Readiness check",
-    description=(
-        "Checks whether the NEXUS API is ready to process requests."
-    ),
+    description=("Checks whether the NEXUS API is ready to process requests."),
 )
 async def readiness_check() -> dict[str, str]:
     return {

@@ -1,0 +1,94 @@
+name: NEXUS CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  quality:
+    name: Code quality and tests
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: nexus
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus -d nexus"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create test database
+        env:
+          PGPASSWORD: nexus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          psql \
+            -h localhost \
+            -U nexus \
+            -d nexus \
+            -c "CREATE DATABASE nexus_test;"
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+      - name: Run MyPy
+        run: mypy --explicit-package-bases backend
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+psycopg://nexus:nexus@localhost:5432/nexus
+          TEST_DATABASE_URL: postgresql+psycopg://nexus:nexus@localhost:5432/nexus_test
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          pytest \
+            --cov=backend.app \
+            --cov-report=term-missing \
+            --cov-fail-under=80
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    needs: quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t nexus:ci .

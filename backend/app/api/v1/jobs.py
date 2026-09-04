@@ -22,11 +22,11 @@ router = APIRouter(
     "/{job_id}",
     response_model=JobResponse,
     responses={
-            404: {
-                "model": ErrorResponse,
-                "description": "Job not found",
-            },
+        404: {
+            "model": ErrorResponse,
+            "description": "Job not found",
         },
+    },
     summary="Get job status",
     description="""
     Returns the current status and progress of an asynchronous NEXUS job.

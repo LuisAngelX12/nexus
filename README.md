@@ -1,5 +1,7 @@
 # NEXUS
 
+[![NEXUS CI](https://github.com/LuisAngelX12/NEXUS/actions/workflows/ci.yml/badge.svg)](https://github.com/LuisAngelX12/NEXUS/actions/workflows/ci.yml)
+
 Privacy-first intelligent document management and analysis platform.
 
 > 🚧 NEXUS is currently under active development.

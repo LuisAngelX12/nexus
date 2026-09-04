@@ -277,7 +277,7 @@ def test_workspace_ownership(
     workspace_id = workspace["id"]
 
     with patch(
-            "backend.app.api.v1.workspaces.scan_workspace_task",
+        "backend.app.api.v1.workspaces.scan_workspace_task",
     ) as mock_task:
         response = client.post(
             f"/api/v1/workspaces/{workspace_id}/scan",
@@ -327,7 +327,7 @@ def test_workspace_owner_can_start_scan(
     workspace_id = create_response.json()["id"]
 
     with patch(
-            "backend.app.api.v1.workspaces.scan_workspace_task",
+        "backend.app.api.v1.workspaces.scan_workspace_task",
     ) as mock_task:
         response = client.post(
             f"/api/v1/workspaces/{workspace_id}/scan",

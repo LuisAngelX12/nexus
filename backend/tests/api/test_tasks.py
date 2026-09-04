@@ -12,10 +12,12 @@ from backend.app.models.job import JobStatus
 
 
 def mock_session_local(monkeypatch, job_session, scanner_session):
-    sessions = iter([
-        job_session,
-        scanner_session,
-    ])
+    sessions = iter(
+        [
+            job_session,
+            scanner_session,
+        ]
+    )
 
     monkeypatch.setattr(
         "backend.app.jobs.tasks.SessionLocal",
@@ -249,9 +251,7 @@ def test_scan_workspace_task_success(monkeypatch):
     assert job.started_at is not None
 
     assert job.files_processed == (
-        result["new_files"]
-        + result["unchanged_files"]
-        + result["modified_files"]
+        result["new_files"] + result["unchanged_files"] + result["modified_files"]
     )
 
     scanner_session.commit.assert_called()
