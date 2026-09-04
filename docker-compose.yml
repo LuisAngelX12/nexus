@@ -1,36 +1,86 @@
 services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-api
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:17
     container_name: nexus-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_DB: nexus
       POSTGRES_USER: nexus
-      POSTGRES_PASSWORD: nexus_dev_password
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: nexus
     volumes:
-      - nexus_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U nexus -d nexus"
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: nexus-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
-      - nexus_redis_data:/data
+      - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping"
+        ]
       interval: 5s
-      timeout: 3s
+      timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-worker
+    user: "celery"
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app
+    command:
+      [
+        "celery",
+        "-A",
+        "backend.app.jobs.celery_app",
+        "worker",
+        "--loglevel=INFO"
+      ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  nexus_postgres_data:
-  nexus_redis_data:
+  postgres_data:
+  redis_data:

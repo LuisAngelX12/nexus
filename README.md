@@ -31,3 +31,45 @@ NEXUS is a Python-based platform designed to help users organize, analyze, searc
 
 ```bash
 uvicorn backend.app.main:app --reload
+```
+
+## Running with Docker
+
+### Requirements
+
+- Docker
+- Docker Compose
+
+### Configuration
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+In Windows PowerShell, you can also specify:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Configure the required environment variables.
+
+### Start NEXUS
+
+```bash
+docker compose up --build
+```
+
+## API
+
+### Open:
+
+http://localhost:8000/docs
+
+### Stop:
+
+```bash
+docker compose down
+```
