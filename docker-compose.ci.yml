@@ -1,0 +1,9 @@
+services:
+
+  api:
+    volumes:
+      - ./tests/fixtures/test-workspace:/data/test-workspace
+
+  worker:
+    volumes:
+      - ./tests/fixtures/test-workspace:/data/test-workspace
