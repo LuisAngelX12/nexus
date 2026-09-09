@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     database_url: str
-    test_database_url: str
+    test_database_url: str | None = None
 
     jwt_secret: str
     jwt_algorithm: str = "HS256"
