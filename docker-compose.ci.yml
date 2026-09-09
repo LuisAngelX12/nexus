@@ -1,6 +1,8 @@
 services:
 
   api:
+    environment:
+      ENVIRONMENT: test
     volumes:
       - ./tests/fixtures/test-workspace:/data/test-workspace
 

@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.jobs.tasks import scan_workspace_task
 from backend.app.models.job import Job, JobStatus, JobType
 from backend.app.models.user import User
@@ -43,6 +44,10 @@ router = APIRouter(
             "model": ErrorResponse,
             "description": "Authentication required",
         },
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many workspace creation requests",
+        },
     },
     summary="Create workspace",
     description="""
@@ -51,7 +56,9 @@ router = APIRouter(
     The workspace path is validated before it is persisted.
     """,
 )
+@limiter.limit("20/minute")
 def create_workspace(
+    request: Request,
     data: WorkspaceCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -111,9 +118,15 @@ def create_workspace(
             "model": ErrorResponse,
             "description": "A scan is already running",
         },
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many workspace creation requests",
+        },
     },
 )
+@limiter.limit("10/minute")
 def scan_workspace(
+    request: Request,
     workspace_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

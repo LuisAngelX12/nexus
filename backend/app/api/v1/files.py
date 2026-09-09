@@ -1,15 +1,17 @@
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.models.user import User
 from backend.app.repositories.workspace_repository import (
     WorkspaceRepository,
 )
+from backend.app.schemas.error import ErrorResponse
 from backend.app.schemas.file import FileResponse
 from backend.app.services.file_service import (
     DuplicateFileError,
@@ -26,8 +28,16 @@ router = APIRouter(
     "/index",
     response_model=FileResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many requests",
+        },
+    },
 )
+@limiter.limit("30/minute")
 def index_file(
+    request: Request,
     path: str,
     workspace_id: UUID,
     db: Session = Depends(get_db),

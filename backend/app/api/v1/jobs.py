@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.models import Job, JobStatus, Workspace
 from backend.app.models.user import User
 from backend.app.repositories.job_repository import JobRepository
@@ -26,6 +27,10 @@ router = APIRouter(
             "model": ErrorResponse,
             "description": "Job not found",
         },
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many requests",
+        },
     },
     summary="Get job status",
     description="""
@@ -35,7 +40,9 @@ router = APIRouter(
     blocking the HTTP request.
     """,
 )
+@limiter.limit("60/minute")
 def get_job(
+    request: Request,
     job_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -83,9 +90,15 @@ def get_job(
             "model": ErrorResponse,
             "description": "Job cannot be cancelled",
         },
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many requests",
+        },
     },
 )
+@limiter.limit("30/minute")
 def cancel_job(
+    request: Request,
     job_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

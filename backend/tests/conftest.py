@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import get_settings
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.main import app
 from backend.app.models.base import Base
 
@@ -38,6 +39,17 @@ def session() -> Generator[Session]:
     Base.metadata.drop_all(bind=test_engine)
 
 
+@pytest.fixture(autouse=True)
+def disable_rate_limiting():
+    previous_state = limiter.enabled
+    limiter.enabled = False
+
+    try:
+        yield
+    finally:
+        limiter.enabled = previous_state
+
+
 @pytest.fixture
 def client() -> Generator[TestClient]:
     def override_get_db() -> Generator[Session]:
@@ -55,4 +67,4 @@ def client() -> Generator[TestClient]:
 
 @pytest.fixture
 def sample_text() -> str:
-    return "NEXUS test data"
+    return "NEXUS test data"  # pragma: no cover

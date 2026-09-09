@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from slowapi.errors import RateLimitExceeded
 
 from backend.app.api.routes.health import router as health_router
 from backend.app.api.routes.ready import router as ready_router
@@ -11,6 +12,10 @@ from backend.app.api.v1.workspaces import (
     router as workspaces_router,
 )
 from backend.app.core.logging_config import configure_logging
+from backend.app.core.rate_limit import limiter
+from backend.app.core.rate_limit_handler import (
+    rate_limit_exceeded_handler,
+)
 from backend.app.middleware.request_id import (
     RequestIDMiddleware,
 )
@@ -57,6 +62,13 @@ app = FastAPI(
     },
     docs_url="/docs",
     redoc_url="/redoc",
+)
+
+app.state.limiter = limiter
+
+app.add_exception_handler(
+    RateLimitExceeded,
+    rate_limit_exceeded_handler,
 )
 
 app.add_middleware(

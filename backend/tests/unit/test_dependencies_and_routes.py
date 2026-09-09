@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+from starlette.requests import Request
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.api.routes.ready import readiness_check
@@ -20,6 +21,19 @@ from backend.app.schemas.user import UserCreate, UserLogin
 from backend.app.services.file_service import DuplicateFileError
 from backend.app.services.path_security_service import PathSecurityError
 from backend.app.services.user_service import UserAlreadyExistsError
+
+
+def make_request() -> Request:
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/test",
+        "headers": [],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+        "scheme": "http",
+    }
+    return Request(scope)
 
 
 def make_user(
@@ -192,10 +206,14 @@ def test_register_duplicate_user(
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        register(data, MagicMock())
+        register(
+            request=make_request(),
+            data=data,
+            db=MagicMock(),
+        )
 
     assert exc_info.value.status_code == 409
-    assert exc_info.value.detail == ("A user with this email already exists.")
+    assert exc_info.value.detail == "A user with this email already exists."
 
 
 def test_login_invalid_credentials(
@@ -215,7 +233,11 @@ def test_login_invalid_credentials(
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        login(data, MagicMock())
+        login(
+            request=make_request(),
+            data=data,
+            db=MagicMock(),
+        )
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid credentials"
@@ -236,6 +258,7 @@ def test_index_file_workspace_not_found(
 
     with pytest.raises(HTTPException) as exc_info:
         index_file(
+            request=make_request(),
             path="test.txt",
             workspace_id=uuid4(),
             db=MagicMock(),
@@ -260,6 +283,7 @@ def test_index_file_workspace_belongs_to_other_user(
 
     with pytest.raises(HTTPException) as exc_info:
         index_file(
+            request=make_request(),
             path="test.txt",
             workspace_id=workspace.id,
             db=MagicMock(),
@@ -291,6 +315,7 @@ def test_index_file_file_not_found(
 
     with pytest.raises(HTTPException) as exc_info:
         index_file(
+            request=make_request(),
             path="missing.txt",
             workspace_id=workspace.id,
             db=MagicMock(),
@@ -322,6 +347,7 @@ def test_index_file_invalid_path(
 
     with pytest.raises(HTTPException) as exc_info:
         index_file(
+            request=make_request(),
             path="bad.txt",
             workspace_id=workspace.id,
             db=MagicMock(),
@@ -357,6 +383,7 @@ def test_index_file_duplicate(
 
     with pytest.raises(HTTPException) as exc_info:
         index_file(
+            request=make_request(),
             path="duplicate.txt",
             workspace_id=workspace.id,
             db=MagicMock(),
@@ -388,6 +415,7 @@ def test_create_workspace_invalid_path(
 
     with pytest.raises(HTTPException) as exc_info:
         create_workspace(
+            request=make_request(),
             data=data,
             db=MagicMock(),
             current_user=make_user(),
@@ -421,6 +449,7 @@ def test_create_workspace_missing_directory(
 
     with pytest.raises(HTTPException) as exc_info:
         create_workspace(
+            request=make_request(),
             data=data,
             db=MagicMock(),
             current_user=make_user(),
@@ -456,6 +485,7 @@ def test_create_workspace_invalid_data(
 
     with pytest.raises(HTTPException) as exc_info:
         create_workspace(
+            request=make_request(),
             data=data,
             db=MagicMock(),
             current_user=make_user(),
@@ -478,6 +508,7 @@ def test_scan_workspace_not_found(
 
     with pytest.raises(HTTPException) as exc_info:
         scan_workspace(
+            request=make_request(),
             workspace_id=uuid4(),
             db=MagicMock(),
             current_user=make_user(),
@@ -535,6 +566,7 @@ def test_scan_workspace_dispatches_task(
     )
 
     result = scan_workspace(
+        request=make_request(),
         workspace_id=workspace.id,
         db=MagicMock(),
         current_user=user,
@@ -590,6 +622,7 @@ def test_index_file_success(
     )
 
     result = index_file(
+        request=make_request(),
         path="C:/workspace/test.txt",
         workspace_id=workspace_id,
         db=MagicMock(),
@@ -626,6 +659,7 @@ def test_scan_workspace_belongs_to_other_user(
 
     with pytest.raises(HTTPException) as exc_info:
         scan_workspace(
+            request=make_request(),
             workspace_id=workspace_id,
             db=MagicMock(),
             current_user=current_user,

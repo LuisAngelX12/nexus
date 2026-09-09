@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.api.dependencies import get_current_user
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.models.user import User
+from backend.app.schemas.error import ErrorResponse
 from backend.app.schemas.user import (
     TokenResponse,
     UserCreate,
@@ -25,8 +27,16 @@ router = APIRouter(
     "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many login attempts",
+        },
+    },
 )
+@limiter.limit("10/minute")
 def register(
+    request: Request,
     data: UserCreate,
     db: Session = Depends(get_db),
 ) -> UserResponse:
@@ -46,8 +56,16 @@ def register(
 @router.post(
     "/login",
     response_model=TokenResponse,
+    responses={
+        429: {
+            "model": ErrorResponse,
+            "description": "Too many login attempts",
+        },
+    },
 )
+@limiter.limit("5/minute")
 def login(
+    request: Request,
     data: UserLogin,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
